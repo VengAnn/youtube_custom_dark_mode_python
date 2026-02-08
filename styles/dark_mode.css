@@ -1,0 +1,215 @@
+/* === NUCLEAR OPTION DARK MODE === */
+
+/* --- 1. GLOBAL DARK MODE FORCE --- */
+html,
+[dark] {
+    --yt-spec-base-background: #000000 !important;
+    --yt-spec-raised-background: #111111 !important;
+    --yt-spec-menu-background: #1e1e1e !important;
+    --yt-spec-inverted-background: #ffffff !important;
+    --yt-spec-text-primary: #ffffff !important;
+    --yt-spec-text-secondary: #aaaaaa !important;
+    --yt-spec-text-disabled: #717171 !important;
+    --yt-spec-brand-icon-active: #ffffff !important;
+    --yt-spec-brand-icon-inactive: #909090 !important;
+    --ytd-searchbox-background: #121212 !important;
+    --ytd-searchbox-text-color: #e5e5e5 !important;
+    --ytd-searchbox-legacy-button-icon-color: #e5e5e5 !important;
+    --ytd-searchbox-legacy-button-color: #2a2a2a !important;
+    --ytd-searchbox-legacy-button-border-color: #333 !important;
+}
+
+/* --- 2. HEADER / MASTHEAD BACKGROUND --- */
+ytd-masthead,
+#masthead-container {
+    background: #0f0f0f !important;
+    background-color: #0f0f0f !important;
+    border-bottom: 1px solid #333;
+}
+
+/* --- 3. SEARCH BAR VISIBILITY (SUPER CRITICAL) --- */
+ytd-searchbox,
+#search-form,
+#container.ytd-searchbox,
+ytd-searchbox[dark] #container.ytd-searchbox,
+.ytd-searchbox-spt {
+    background: #121212 !important;
+    background-color: #121212 !important;
+    border-color: #303030 !important;
+    color: #e5e5e5 !important;
+    box-shadow: none !important;
+}
+
+/* Force border on the container specifically */
+#container.ytd-searchbox {
+    border: 1px solid #303030 !important;
+    box-shadow: none !important;
+}
+
+/* Force the input text to be light */
+#search-input input,
+input#search {
+    color: #e5e5e5 !important;
+    background: transparent !important;
+}
+
+#search-input input::placeholder {
+    color: #888 !important;
+}
+
+/* search button (magnifying glass) specific fix */
+#search-icon-legacy.ytd-searchbox {
+    background-color: #2a2a2a !important;
+    border: 1px solid #303030 !important;
+    border-left: none !important;
+}
+
+#search-icon-legacy.ytd-searchbox yt-icon {
+    color: #e5e5e5 !important;
+    fill: #e5e5e5 !important;
+}
+
+/* --- 4. LOGO FIX --- */
+/* Force all paths in the logo to be white first */
+ytd-topbar-logo-renderer #logo-icon svg path,
+ytd-topbar-logo-renderer #logo svg path {
+    fill: #ffffff !important;
+}
+
+/* Then force the red play button part back to red */
+ytd-topbar-logo-renderer #logo-icon svg path[fill="#FF0000"],
+ytd-topbar-logo-renderer #logo-icon svg path[fill="red"],
+ytd-topbar-logo-renderer #logo-icon svg path[fill="#FF0033"] {
+    fill: #ff0000 !important;
+}
+
+/* --- 5. ICONS: THE "NUCLEAR" SVG FIX --- */
+/* This forces ALL icons in the header to be white */
+ytd-masthead yt-icon,
+ytd-masthead .yt-icon-container,
+#buttons.ytd-masthead yt-icon,
+#guide-button {
+    color: #e5e5e5 !important;
+    fill: #e5e5e5 !important;
+}
+
+/* Specifically target SVG paths to ensure they are filled light */
+ytd-masthead:not(ytd-topbar-logo-renderer) svg path {
+    fill: #e5e5e5 !important;
+}
+
+/* --- 6. MICROPHONE BUTTON --- */
+#voice-search-button.ytd-masthead {
+    background-color: #181818 !important;
+    border-radius: 50% !important;
+}
+
+/* --- 7. RIGHT SIDE ICONS (Create, Bell, Avatar) --- */
+#buttons.ytd-masthead .yt-icon-button {
+    color: #e5e5e5 !important;
+}
+
+/* --- 8. GENERAL PAGE BACKGROUNDS --- */
+body,
+ytd-app,
+#content,
+#page-manager,
+#columns {
+    background-color: #000000 !important;
+    color: #e5e5e5 !important;
+}
+
+/* Sidebar */
+ytd-guide-renderer,
+#guide-content,
+#guide-inner-content {
+    background-color: #0f0f0f !important;
+}
+
+ytd-guide-entry-renderer[active] {
+    background-color: #272727 !important;
+}
+
+ytd-guide-entry-renderer yt-icon {
+    color: #e5e5e5 !important;
+    fill: #e5e5e5 !important;
+}
+
+/* Chips */
+yt-chip-cloud-chip-renderer {
+    background-color: #272727 !important;
+    color: #e5e5e5 !important;
+    border: 1px solid #333;
+}
+
+yt-chip-cloud-chip-renderer[selected] {
+    background-color: #f1f1f1 !important;
+    color: #0d0d0d !important;
+}
+
+/* Metadata / Description */
+ytd-watch-metadata {
+    background-color: #0f0f0f !important;
+}
+
+#description-inner,
+#description {
+    background-color: #272727 !important;
+    color: #e5e5e5 !important;
+}
+
+ytd-text-inline-expander {
+    color: #e5e5e5 !important;
+}
+
+/* Comments */
+#comments-header,
+ytd-comment-thread-renderer {
+    background-color: #000000 !important;
+}
+
+#author-text,
+#content-text {
+    color: #e5e5e5 !important;
+}
+
+/* --- 9. PROMO BANNERS (Fix for White Background Ads) --- */
+ytd-banner-promo-renderer {
+    background-color: #1e1e1e !important;
+    border: 1px solid #333 !important;
+    border-radius: 12px;
+}
+
+/* HIDE THE BRIGHT BACKGROUND IMAGE */
+img.ytd-banner-promo-renderer-inline-image {
+    display: none !important;
+    opacity: 0 !important;
+}
+
+.ytd-banner-promo-renderer-background,
+ytd-banner-promo-renderer .ytd-banner-promo-renderer-background {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+/* Fix text colors inside the banner */
+ytd-banner-promo-renderer yt-formatted-string,
+ytd-banner-promo-renderer .formatted-string-text,
+ytd-banner-promo-renderer span[role="text"],
+ytd-banner-promo-renderer .yt-core-attributed-string {
+    color: #f1f1f1 !important;
+}
+
+/* Fix the "Get it now" action button */
+ytd-banner-promo-renderer #action-button a,
+ytd-banner-promo-renderer a.yt-spec-button-shape-next--filled {
+    background-color: #ffffff !important;
+    color: #0f0f0f !important;
+}
+
+/* Fix the dismiss/close button */
+ytd-banner-promo-renderer #dismiss-button button,
+ytd-banner-promo-renderer #dismiss-button yt-icon {
+    color: #f1f1f1 !important;
+    fill: #f1f1f1 !important;
+}
