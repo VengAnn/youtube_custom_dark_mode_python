@@ -1,92 +1,213 @@
-import sys
-import time
+import webview
 from pathlib import Path
-from src.browser import setup_browser
-from src.styles_manager import inject_styles, clear_injected_styles
-from selenium.webdriver.common.by import By
+import threading
+import time
 
-# CONFIGURATION: Set to 'DARK', 'LIGHT', or None
-DEFAULT_THEME = 'DARK' 
+# CONFIGURATION
+DEFAULT_THEME = 'DARK'
 
-def print_menu():
-    print("\n--- YouTube Custom Theme Manager ---")
-    print(f"Current Default: {DEFAULT_THEME}")
-    print("1. Launch YouTube (Clean Browser)")
-    print("2. Apply Custom Dark Mode")
-    print("3. Apply Custom Light Mode")
-    print("4. Clear Custom Styles")
-    print("5. Switch Native Theme (Dark/Light)")
-    print("6. Exit")
-    print("------------------------------------")
+def inject_css(window, css_file):
+    try:
+        css_content = Path(css_file).read_text(encoding="utf-8")
+        script = f"""
+            var old_style = document.getElementById('custom-theme-injector');
+            if (old_style) old_style.remove();
+            var style = document.createElement('style');
+            style.type = 'text/css';
+            style.id = 'custom-theme-injector';
+            style.textContent = `{css_content}`;
+            document.head.appendChild(style);
+        """
+        window.evaluate_js(script)
+    except Exception as e:
+        print(f"Error injecting CSS: {e}")
+
+def clear_css(window):
+    script = """
+        var style = document.getElementById('custom-theme-injector');
+        if (style) style.remove();
+    """
+    window.evaluate_js(script)
+
+class Api:
+    def __init__(self):
+        self.window = None
+
+    def log_action(self, message):
+        print(f"✅ [AdBlocker] {message}")
+
+    def set_theme(self, theme_name):
+        print(f"Applying theme: {theme_name}")
+        if theme_name.upper() == 'DARK':
+            js = """
+            localStorage.setItem('custom_theme', 'DARK');
+            document.cookie = "PREF=f6=400; expires=Thu, 31 Dec 2030 23:59:59 UTC; domain=.youtube.com; path=/";
+            if (!document.documentElement.hasAttribute('dark')) {
+                window.location.reload();
+            }
+            """
+            try: self.window.evaluate_js(js)
+            except: pass
+            inject_css(self.window, "styles/dark_mode.css")
+            
+        elif theme_name.upper() == 'LIGHT':
+            js = """
+            localStorage.setItem('custom_theme', 'LIGHT');
+            document.cookie = "PREF=f6=4; expires=Thu, 31 Dec 2030 23:59:59 UTC; domain=.youtube.com; path=/";
+            if (document.documentElement.hasAttribute('dark')) {
+                window.location.reload();
+            }
+            """
+            try: self.window.evaluate_js(js)
+            except: pass
+            inject_css(self.window, "styles/light_mode.css")
+            
+        elif theme_name.upper() == 'CLEAR':
+            try: self.window.evaluate_js("localStorage.removeItem('custom_theme');")
+            except: pass
+            clear_css(self.window)
+
+def inject_control_panel(window):
+    # Wait for the DOM to be fully ready
+    time.sleep(2)
+    
+    # Inject a clean, floating UI panel to switch themes
+    ui_script = """
+    if (!document.getElementById('theme-control-panel')) {
+        var panel = document.createElement('div');
+        panel.id = 'theme-control-panel';
+        panel.style.position = 'fixed';
+        panel.style.bottom = '20px';
+        panel.style.right = '20px';
+        panel.style.zIndex = '999999';
+        panel.style.background = 'rgba(20, 20, 20, 0.85)';
+        panel.style.backdropFilter = 'blur(10px)';
+        panel.style.padding = '12px';
+        panel.style.borderRadius = '12px';
+        panel.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+        panel.style.display = 'flex';
+        panel.style.gap = '8px';
+        panel.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+        
+        function createBtn(text, theme) {
+            var btn = document.createElement('button');
+            btn.innerText = text;
+            btn.style.background = '#333';
+            btn.style.color = '#fff';
+            btn.style.border = 'none';
+            btn.style.padding = '8px 16px';
+            btn.style.borderRadius = '6px';
+            btn.style.cursor = 'pointer';
+            btn.style.fontWeight = '500';
+            btn.style.transition = 'background 0.2s';
+            btn.onmouseover = () => btn.style.background = '#555';
+            btn.onmouseout = () => btn.style.background = '#333';
+            btn.onclick = () => pywebview.api.set_theme(theme);
+            return btn;
+        }
+        
+        panel.appendChild(createBtn('Dark Mode', 'DARK'));
+        panel.appendChild(createBtn('Light Mode', 'LIGHT'));
+        panel.appendChild(createBtn('Reset', 'CLEAR'));
+        
+        document.body.appendChild(panel);
+    }
+    """
+    window.evaluate_js(ui_script)
+    
+    # Apply theme based on localStorage, or fallback to DEFAULT_THEME
+    init_script = f"""
+    var theme = localStorage.getItem('custom_theme') || '{DEFAULT_THEME}';
+    if (theme === 'DARK') {{
+        pywebview.api.set_theme('DARK');
+    }} else if (theme === 'LIGHT') {{
+        pywebview.api.set_theme('LIGHT');
+    }}
+    """
+    window.evaluate_js(init_script)
+
+def inject_adblock(window):
+    adblock_script = """
+    // YouTube Ad Auto-Skipper & Remover
+    setInterval(() => {
+        // 1. Auto-click 'Skip Ad' buttons
+        const skipBtn = document.querySelector('.ytp-skip-ad-button') || document.querySelector('.ytp-ad-skip-button');
+        if (skipBtn) {
+            skipBtn.click();
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.log_action('Skipped ad via button click!');
+            }
+        }
+        
+        // 2. Fast-forward video ads
+        const adShowing = document.querySelector('.ad-showing') || document.querySelector('.ytp-ad-player-overlay');
+        if (adShowing) {
+            const video = document.querySelector('video');
+            if (video && isFinite(video.duration) && video.currentTime < video.duration) {
+                video.currentTime = video.duration;
+                if (window.pywebview && window.pywebview.api) {
+                    window.pywebview.api.log_action('Fast-forwarded unskippable ad!');
+                }
+            }
+        }
+        
+        // 3. Remove popup ads and banners
+        const adSelectors = [
+            '.ytp-ad-overlay-container', 
+            'ytd-ad-slot-renderer', 
+            'ytd-banner-promo-renderer', 
+            'ytd-promoted-sparkles-web-renderer',
+            'ytd-in-feed-ad-layout-renderer',
+            '#masthead-ad'
+        ];
+        let removedAds = false;
+        adSelectors.forEach(selector => {
+            const ads = document.querySelectorAll(selector);
+            ads.forEach(ad => {
+                ad.remove();
+                removedAds = true;
+            });
+        });
+        
+        // Only log banner removals occasionally so we don't spam the console too much
+        // but for testing, it's good to see it.
+        // We will just silently remove banners to keep the terminal clean for video skips.
+    }, 500); // Check every 500ms for ads
+    """
+    try:
+        window.evaluate_js(adblock_script)
+        print("Adblock script injected.")
+    except Exception as e:
+        print(f"Error injecting adblock: {e}")
 
 def main():
-    print("Initializing browser...")
-    driver = setup_browser(headless=False)
+    api = Api()
     
-    try:
-        driver.get("https://www.youtube.com")
-        print("YouTube loaded successfully.")
+    # Create native window using pywebview
+    window = webview.create_window(
+        'YouTube (Native Webview)', 
+        'https://www.youtube.com', 
+        js_api=api, 
+        width=1200, 
+        height=800
+    )
+    api.window = window
+    
+    # When the page loads, inject our controls, CSS, and Adblock
+    def on_loaded():
+        try:
+            current_url = window.get_current_url()
+            if current_url and "youtube.com" in current_url:
+                threading.Thread(target=inject_control_panel, args=(window,)).start()
+                threading.Thread(target=inject_adblock, args=(window,)).start()
+        except Exception as e:
+            print(f"Error in on_loaded: {e}")
+        
+    window.events.loaded += on_loaded
+    
+    # Start the app (private_mode=False allows saving cookies/login state)
+    print("Starting native webview...")
+    webview.start(private_mode=False)
 
-        # Auto-apply default theme
-        if DEFAULT_THEME:
-            print(f"Applying default theme: {DEFAULT_THEME}...")
-            time.sleep(2) # Wait a bit for page to settle
-            if DEFAULT_THEME.upper() == 'DARK':
-                inject_styles(driver, Path("styles/dark_mode.css"))
-            elif DEFAULT_THEME.upper() == 'LIGHT':
-                inject_styles(driver, Path("styles/light_mode.css"))
-
-        while True:
-            # Re-focus on terminal for input
-            print_menu()
-            choice = input("Enter your choice (1-5): ").strip()
-
-            if choice == '1':
-                driver.get("https://www.youtube.com")
-                print("Reloaded YouTube.")
-            
-            elif choice == '2':
-                style_path = Path("styles/dark_mode.css")
-                inject_styles(driver, style_path)
-                print("Applied Dark Mode CSS.")
-
-            elif choice == '3':
-                style_path = Path("styles/light_mode.css")
-                inject_styles(driver, style_path)
-                print("Applied Light Mode CSS.")
-
-            elif choice == '4':
-                clear_injected_styles(driver)
-                print("Cleared custom styles.")
-
-            elif choice == '5':
-                from src.youtube import YouTubePage
-                yt = YouTubePage(driver)
-                print("Attempting to toggle native theme (make sure you are logged in for this to work best)...")
-                # Simple toggle logic - just switches to opposite of what user thinks, or cycle
-                # Since we can't easily detect current state reliably without complex logic, we'll ask user
-                target = input("Switch to (Dark/Light)? ").strip().capitalize()
-                if target in ['Dark', 'Light']:
-                    yt.toggle_native_theme(target)
-                else:
-                    print("Invalid theme choice.")
-
-            elif choice == '6':
-                print("Closing browser...")
-                break
-            
-            else:
-                print("Invalid choice. Please try again.")
-            
-            time.sleep(0.5)
-
-    except KeyboardInterrupt:
-        print("\nExiting...")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    finally:
-        if driver:
-            driver.quit()
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
