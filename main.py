@@ -180,6 +180,34 @@ def inject_adblock(window):
     except Exception as e:
         print(f"Error injecting adblock: {e}")
 
+def inject_custom_logo(window):
+    try:
+        import base64
+        logo_path = Path("assets/tube_pro_logo.png")
+        if logo_path.exists():
+            encoded = base64.b64encode(logo_path.read_bytes()).decode('utf-8')
+            b64_src = f"data:image/png;base64,{encoded}"
+            logo_script = f"""
+            setInterval(() => {{
+                const logoContainer = document.querySelector('ytd-topbar-logo-renderer #logo');
+                if (logoContainer && !logoContainer.hasAttribute('data-custom-logo')) {{
+                    logoContainer.setAttribute('data-custom-logo', 'true');
+                    logoContainer.innerHTML = `<div style="display: flex; align-items: center; padding-left: 16px;">
+                        <img src="{b64_src}" style="height: 28px; width: 28px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                        <span style="font-size: 20px; font-weight: 700; margin-left: 10px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -0.5px; color: var(--yt-spec-text-primary, white);">Tube Pro</span>
+                    </div>`;
+                    
+                    // Hide the country code if it exists next to the logo
+                    const countryCode = document.querySelector('#country-code');
+                    if(countryCode) countryCode.style.display = 'none';
+                }}
+            }}, 1000);
+            """
+            window.evaluate_js(logo_script)
+            print("Custom logo injected.")
+    except Exception as e:
+        print(f"Error injecting custom logo: {e}")
+
 def main():
     api = Api()
     
@@ -200,6 +228,7 @@ def main():
             if current_url and "youtube.com" in current_url:
                 threading.Thread(target=inject_control_panel, args=(window,)).start()
                 threading.Thread(target=inject_adblock, args=(window,)).start()
+                threading.Thread(target=inject_custom_logo, args=(window,)).start()
         except Exception as e:
             print(f"Error in on_loaded: {e}")
         
